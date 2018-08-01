@@ -33,8 +33,8 @@ stdDev = defaultdict(list)
 
 
 def main():	
-	pname = r'C:\\Users\\sahana\\Documents\\SimVascular_Stanford_Internship\\Python_Project\\Input_Files\\' # path name to 1D input file
-	in_file = pname + 'Normal_15mo.in' # input file
+	pname = r'/home/melody/PH/Scripts/Morphometry/quantify_morphometry/' # path name to 1D input file
+	in_file = pname + 'SU0262_LPA_02.in' # input file
 
 	# Get Relevant Segment, Node, and Joint Information from Input File
 	nodeInfo = nodes(in_file)
@@ -43,26 +43,29 @@ def main():
 
 	# Get Morphometry-Based Segment Areas and Lengths
 	bifLength, avgAreaSegment, huangSegments, avgLengthSegment, segmentsInHuangSegments = bifSegInfo(nodeInfo, jointSeg, segNode, segLength, segArea)
-	#print('Segments In Huang Segments: ' + str(segmentsInHuangSegments))
 
+	# I don't think the bifDiameter is ever used?  -MD(8/1/18)
+	# # Get dictionary of diameters
+	# bifDiameter = defaultdict(list)
+	# for name in avgAreaSegment:
+	# 	diameter = np.mean(avgAreaSegment.get(name))/2*np.pi
+	# 	bifDiameter[name] = diameter
 
-	# Get dictionary of diameters
-	bifDiameter = defaultdict(list)
-	for name in avgAreaSegment:
-		diameter = np.mean(avgAreaSegment.get(name))/2*np.pi
-		bifDiameter[name] = diameter
+	# print('jointSeg: ' + str(jointSeg))
 
 	maxOrder = 15
 
 
 	#Initial list
 	#huangDiameters = (.020, .036, .056, .097, .15, .22, .34, .51, .77, 1.16, 1.75, 2.71, 4.16, 7.34, 14.80) #Average Diameters from Huang Paper
-	huangDiameters = (.020, .036, .056, .097, .15, .22, .34, .51, .77, 1.16, 1.75, 2.71, 4.16, 7.34, 14.80) #Average Diameters from Huang Paper
-	initDiameters = [i * 2 for i in huangDiameters] #Scale by scaling factor(0.518)
+	huangDiameters = (.020, .036, .056, .097, .15, .22, .34, .51, .77, 1.16, 1.75, 2.71, 4.16, 7.34, 14.80) #Average Diameters from Huang Paper [mm]
+	initDiameters = [i * 0.2 for i in huangDiameters] #Scale by scaling factor(0.518)
 	huangStdDev = (.003, 0.005, 0.005, 0.012, 0.02, 0.02, 0.06, 0.04, 0.07, 0.10, 0.19, 0.35, 0.60, 1.14, 2.10) #Standard Deviations from Huang Paper
-	initStdDev = [i * 2 for i in huangStdDev] #Scale by scaling factor(0.518)
+	initStdDev = [i * 0.2 for i in huangStdDev] #Scale by scaling factor(0.518)
 
-	previousAverageDiameters = defaultdict(list)
+
+	# Initialize average and stdev diameters for each order
+	previousAverageDiameters = defaultdict(list)	# {Order #: avg Diameter}
 	for i in range(1, 16):
 		previousAverageDiameters[i] = 0
 
@@ -80,19 +83,19 @@ def main():
 	huangSegmentDiameters = defaultdict(list) # {Huang Segment # : Diameter}
 	for vessel in avgAreaSegment:
 		for index in range(0, len(avgAreaSegment.get(vessel))):
-			huangSegmentDiameters[huangSegments.get(vessel)[index]] = 2*(np.sqrt(avgAreaSegment.get(vessel)[index]))/np.pi
+			huangSegmentDiameters[huangSegments.get(vessel)[index]] = 2*(np.sqrt(avgAreaSegment.get(vessel)[index]/np.pi))
 
 
 	#Create dictionary of Lengths of each Huang Segment
 	huangSegmentLengths = defaultdict(list) # {Huang Segment # : Length}
 	for vessel in avgLengthSegment:
 		for index in range(0, len(avgLengthSegment.get(vessel))):
-			huangSegmentLengths[huangSegments.get(vessel)[index]] = np.sqrt(avgLengthSegment.get(vessel)[index])
+			huangSegmentLengths[huangSegments.get(vessel)[index]] = avgLengthSegment.get(vessel)[index]
 
-	#print('Huang Segment Diameters: ' + str(huangSegmentDiameters))
+	# print('Huang Segment Diameters: ' + str(huangSegmentDiameters))
 	
 
-	segOrder = defaultdict(list)		# {Seg Name : Order}
+	segOrder = defaultdict(list)		# {Huang Seg # : Order}
 
 
 	# Classify each segment into a diameter-based order using an initial order classification
@@ -101,10 +104,10 @@ def main():
 	for item in sortedDiameters:
 		for i in range(currOrder,16):
 			currOrder = i
+			# print('Order Initial Diameter: ' + str(initDiameters[currOrder-1]))
 			if(item[1] < initDiameters[currOrder-1] + initStdDev[currOrder-1]):
 				segOrder[item[0]] = currOrder
 				break
-	 
 
 	#print('Segment Diameters' + str(sortedDiameters))
 	#print('Avg Area Segment' + str(avgAreaSegment))	
@@ -119,13 +122,14 @@ def main():
 
 	while not finished:
 		# Recalculate the average diameters and standard deviation of diameters in each order
-		#print('Seg Order: ' + str(segOrder))
+		print('Seg Order: ' + str(segOrder))
 		currOrder = 1
 		currOrderSegments = []
 		counter = 0
 		iterationNumber += 1
 		iterations.append(iterationNumber)
 		for i in segOrder: #Iterate through all Huang Segments -> sorted from smallest diameter to largest
+			# print(segOrder.get(i))
 			counter+=1
 			if(segOrder.get(i) == currOrder): #create np array of all diameters in current order
 				currOrderSegments.append(huangSegmentDiameters.get(i))
@@ -179,9 +183,9 @@ def main():
 			divBy = 1
 			if previousAverageDiameters.get(order, 0) != 0:
 				divBy = previousAverageDiameters.get(order, 0)
-			print(str(previousAverageDiameters.get(order, 0) - avgDiameters.get(order, 0)))
-			print('Prev Avg Di: ' + str(previousAverageDiameters[order]))
-			print('Avg Di: ' + str(avgDiameters[order]))
+			# print(str(previousAverageDiameters.get(order, 0) - avgDiameters.get(order, 0)))
+			# print('Prev Avg Di: ' + str(previousAverageDiameters[order]))
+			# print('Avg Di: ' + str(avgDiameters[order]))
 			if (np.abs(previousAverageDiameters.get(order, 0) - avgDiameters.get(order, 0)))/divBy > .0001:
 				diameterWithin1Percent = False
 				break
@@ -199,8 +203,8 @@ def main():
 		previousStdDevs = stdDev.copy()
 
 	#print('Std Devs: ' + str(stdDev))
-	print('Iterations: ' + str(iterations))
-	print('Diameters Per Iteration: ' + str(diametersPerIteration))
+	# print('Iterations: ' + str(iterations))
+	# print('Diameters Per Iteration: ' + str(diametersPerIteration))
 	currOrder = 1
 	currOrderSegments = []
 	counter = 0
@@ -293,13 +297,13 @@ def main():
 	parentOrder = 1
 	childOrder = 1
 
-	for vessel in segName: #iterate through each vessel
-		for segment in segName.get(vessel): #iterate through all SimVascular Segments (because nodes are based on SimVascular segments, not Huang segments)
-			numOut = len(jointSeg[segment])
-			if numOut > 1: #checks for bifurcation case
-				for childArtery in jointSeg[segment]:
-					if np.absolute(int(childArtery) - int(segment)) > 1: #checks if part of same vessel
-						connectivityMatrix[svSegOrder.get(int(segment))][svSegOrder.get(int(childArtery))] += 1
+	# for vessel in segName: #iterate through each vessel
+	# 	for segment in segName.get(vessel): #iterate through all SimVascular Segments (because nodes are based on SimVascular segments, not Huang segments)
+	# 		numOut = len(jointSeg[segment])
+	# 		if numOut > 1: #checks for bifurcation case
+	# 			for childArtery in jointSeg[segment]:
+	# 				if np.absolute(int(childArtery) - int(segment)) > 1: #checks if part of same vessel
+	# 					connectivityMatrix[svSegOrder.get(int(segment))][svSegOrder.get(int(childArtery))] += 1
 	# print(str(svSegOrder))
 	#print(str(connectivityMatrix))
 	# print(str(segOrder))
@@ -312,10 +316,10 @@ def main():
 			if(numSegmentsInOrder.get(parentOrder) > 0):
 				connectivityMatrix[parentOrder][childOrder] /= elementsPerOrder.get(parentOrder, 1)
 	
-	print(str(connectivityMatrix))
-	print('Average Diameters: ' + str(avgDiameters))
-	print('Std Devs: ' + str(stdDev))
-	print('Average Lengths: ' + str(avgLengths))
+	# print(str(connectivityMatrix))
+	# print('Average Diameters: ' + str(avgDiameters))
+	# print('Std Devs: ' + str(stdDev))
+	# print('Average Lengths: ' + str(avgLengths))
 
 	#print('Sorted Diameters: ' + str(sortedDiameters))
 
