@@ -18,7 +18,7 @@ from shutil import move
 from os import fdopen, remove
 from glob import glob
 import numpy as np
-import matplotlib 
+import matplotlib.pyplot
 
 # Define Global Variables
 nodeInfo = defaultdict(list) 		# { Node # : [X, Y, Z] }
@@ -101,14 +101,31 @@ def main():
 	# Classify each segment into a diameter-based order using an initial order classification
 	sortedDiameters = sorted(huangSegmentDiameters.items(), key=lambda x: x[1]) #sort diameters from smallest to largest
 	currOrder = 1
-	for item in sortedDiameters:
-		for i in range(currOrder,16):
-			currOrder = i
-			# print('Order Initial Diameter: ' + str(initDiameters[currOrder-1]))
-			if(item[1] < initDiameters[currOrder-1] + initStdDev[currOrder-1]):
-				segOrder[item[0]] = currOrder
-				break
+	# for item in sortedDiameters:
+	# 	for i in range(currOrder,16):
+	# 		currOrder = i
+	# 		if(item[1] < initDiameters[currOrder-1] + initStdDev[currOrder-1]):
+	# 			segOrder[item[0]] = currOrder
+	# 			break
+	
+	# for seg in sortedDiameters:
+	# 	segOrder[seg[0]] = 7
 
+	counter = 0
+	currOrder = 1
+	for seg in sortedDiameters:
+		counter += 1
+		if counter < len(sortedDiameters)/15:
+			segOrder[seg[0]] = currOrder
+		else:
+			currOrder += 1
+			counter = 0
+			if currOrder > 15:
+				currOrder = 15
+			segOrder[seg[0]] = currOrder
+
+
+	print('Seg Order: ' + str(segOrder))
 	#print('Segment Diameters' + str(sortedDiameters))
 	#print('Avg Area Segment' + str(avgAreaSegment))	
 	#print('Previous Average Diameters ' + str(previousAverageDiameters))
@@ -128,6 +145,8 @@ def main():
 		counter = 0
 		iterationNumber += 1
 		iterations.append(iterationNumber)
+		print('Avg Diameters: ' + str(avgDiameters))
+		print('Std Devs: ' + str(stdDev))
 		for i in segOrder: #Iterate through all Huang Segments -> sorted from smallest diameter to largest
 			print('i: ' + str(i))
 			print('Seg Order: ' + str(segOrder.get(i)))
@@ -170,11 +189,17 @@ def main():
 		for segment in segOrder: #iterate through all Huang Segments
 			currOrder = segOrder.get(segment)
 			if currOrder > 1:
-				if (avgDiameters.get(currOrder-1, 0) + stdDev.get(currOrder-1, 0) + avgDiameters.get(currOrder) - stdDev.get(currOrder))/2 > huangSegmentDiameters.get(segment):
+				#print(str(avgDiameters.get(currOrder-1, 0) + stdDev.get(currOrder-1, 0) + avgDiameters.get(currOrder) - stdDev.get(currOrder)/2) + " > " + str(huangSegmentDiameters.get(segment)))
+			
+				if ((avgDiameters.get(currOrder-1, 0) + stdDev.get(currOrder-1, 0) + avgDiameters.get(currOrder) - stdDev.get(currOrder))/2 > huangSegmentDiameters.get(segment)):
+					print('True')
 					segOrder[segment] = currOrder - 1
 				
 			if currOrder < maxOrder:
-				if (avgDiameters.get(currOrder) + stdDev.get(currOrder) + avgDiameters.get(currOrder+1, 0) - stdDev.get(currOrder+1, 0)) < huangSegmentDiameters.get(segment):
+				#print(str(avgDiameters.get(currOrder) + stdDev.get(currOrder) + avgDiameters.get(currOrder+1, 0) - stdDev.get(currOrder+1, 0)) + " < " + str(huangSegmentDiameters.get(segment)))
+			
+				if ((avgDiameters.get(currOrder) + stdDev.get(currOrder) + avgDiameters.get(currOrder+1, 0) - stdDev.get(currOrder+1, 0)) < huangSegmentDiameters.get(segment)):
+					print('True')
 					segOrder[segment] = currOrder + 1
 					if segOrder.get(segment) > maxOrder:
 						maxOrder = segOrder.get(segment)
@@ -212,6 +237,9 @@ def main():
 	currOrderSegments = []
 	counter = 0
 	avgLengths = defaultdict(list)
+	for iteration in diametersPerIteration:
+		matplotlib.pyplot.plot(iterations, diametersPerIteration[iteration])
+	matplotlib.pyplot.show()
 
 	# print('Num Segments: ' + str(len(segName)))
 	# print('Node Info: ' + str(len(nodeInfo)))
@@ -284,7 +312,7 @@ def main():
 	#print('Elements Per Order: ' + str(elementsPerOrder))
 
 	#Get Order of each SimVascular Segment
-	svSegOrder = defaultdict(list) #{SV Seg # : Order #}
+	svSegOrder = defaultdict(int) #{SV Seg # : Order #}
 	for huangSegment in segOrder:
 		for svSegment in segmentsInHuangSegments.get(huangSegment):
 			svSegOrder[svSegment] = segOrder.get(huangSegment)
@@ -413,7 +441,7 @@ def bifSegInfo(nodeInfo, jointSeg, segNode, segLength, segArea):
 
 			node2 = nodeInd
 			
-			for index in range(int(bifBegSeg[0]), int(bifEndSeg[len(bifEndSeg)-1]) + 1):
+			for index in range(int(bifBegSeg[ind]), int(bifEndSeg[ind]) + 1):
 				segments.append(index)
 			segmentsInHuangSegments[huangIndex] = segments
 			segments = []
@@ -429,7 +457,6 @@ def bifSegInfo(nodeInfo, jointSeg, segNode, segLength, segArea):
 			# Update Info
 			prevOutNode = outNode
 			newSegInd += 1
-
 			huangSegmentsInVessel.append(huangIndex)
 			huangIndex += 1
 			avgBifArea.append(np.mean([float(Ain), float(Aout)]))
