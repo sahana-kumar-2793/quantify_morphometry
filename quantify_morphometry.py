@@ -129,12 +129,14 @@ def main():
 		iterationNumber += 1
 		iterations.append(iterationNumber)
 		for i in segOrder: #Iterate through all Huang Segments -> sorted from smallest diameter to largest
-			# print(segOrder.get(i))
+			print('i: ' + str(i))
+			print('Seg Order: ' + str(segOrder.get(i)))
 			counter+=1
 			if(segOrder.get(i) == currOrder): #create np array of all diameters in current order
 				currOrderSegments.append(huangSegmentDiameters.get(i))
 			else:
 				npCurrOrderSegments = np.asarray(currOrderSegments)
+				print('npCurrOrderSegments: ' + str(npCurrOrderSegments))
 				if not np.isnan(np.mean(npCurrOrderSegments)): #calculate average diameter for each order
 					avgDiameters[currOrder] = np.mean(npCurrOrderSegments)
 					diametersPerIteration[currOrder].append(np.mean(npCurrOrderSegments))
@@ -143,13 +145,14 @@ def main():
 				currOrderSegments = []
 				currOrder = segOrder.get(i)
 				currOrderSegments.append(huangSegmentDiameters.get(i))
+			print('Current Order Segments: ' + str(currOrderSegments))
 
 		npCurrOrderSegments = np.asarray(currOrderSegments)
 		avgDiameters[currOrder] = np.mean(npCurrOrderSegments)
 		stdDev[currOrder] = np.std(npCurrOrderSegments)
 
-		#print('Average Diameters ' + str(avgDiameters))
-		#print('Standard Deviations ' + str(stdDev))
+		print('Average Diameters ' + str(avgDiameters))
+		print('Standard Deviations ' + str(stdDev))
 
 
 		# Repeat classification based on new averages and standard deviation of order diameter
