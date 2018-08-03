@@ -19,6 +19,7 @@ from os import fdopen, remove
 from glob import glob
 import numpy as np
 import matplotlib.pyplot
+import csv
 
 # Define Global Variables
 nodeInfo = defaultdict(list) 		# { Node # : [X, Y, Z] }
@@ -33,8 +34,8 @@ stdDev = defaultdict(list)
 
 
 def main():	
-	pname = r'/home/melody/PH/Scripts/Morphometry/quantify_morphometry/' # path name to 1D input file
-	in_file = pname + 'SU0262_LPA_02.in' # input file
+	pname = r'C:/Users/sahana/Documents/SimVascular_Stanford_Internship/Python_Project/Input_Files/' # path name to 1D input file
+	in_file = pname + 'Normal_15mo.in' # input file
 
 	# Get Relevant Segment, Node, and Joint Information from Input File
 	nodeInfo = nodes(in_file)
@@ -59,9 +60,9 @@ def main():
 	#Initial list
 	#huangDiameters = (.020, .036, .056, .097, .15, .22, .34, .51, .77, 1.16, 1.75, 2.71, 4.16, 7.34, 14.80) #Average Diameters from Huang Paper
 	huangDiameters = (.020, .036, .056, .097, .15, .22, .34, .51, .77, 1.16, 1.75, 2.71, 4.16, 7.34, 14.80) #Average Diameters from Huang Paper [mm]
-	initDiameters = [i * 0.2 for i in huangDiameters] #Scale by scaling factor(0.518)
-	huangStdDev = (.003, 0.005, 0.005, 0.012, 0.02, 0.02, 0.06, 0.04, 0.07, 0.10, 0.19, 0.35, 0.60, 1.14, 2.10) #Standard Deviations from Huang Paper
-	initStdDev = [i * 0.2 for i in huangStdDev] #Scale by scaling factor(0.518)
+	initDiameters = [i * .5 for i in huangDiameters] #Scale by scaling factor(0.518)
+	huangStdDev = (.0001, 0.005, 0.005, 0.012, 0.02, 0.02, 0.06, 0.04, 0.07, 0.10, 0.19, 0.35, 0.60, 1.14, 2.10) #Standard Deviations from Huang Paper
+	initStdDev = [i * 2 for i in huangStdDev] #Scale by scaling factor(0.518)
 
 
 	# Initialize average and stdev diameters for each order
@@ -101,31 +102,29 @@ def main():
 	# Classify each segment into a diameter-based order using an initial order classification
 	sortedDiameters = sorted(huangSegmentDiameters.items(), key=lambda x: x[1]) #sort diameters from smallest to largest
 	currOrder = 1
-	# for item in sortedDiameters:
-	# 	for i in range(currOrder,16):
-	# 		currOrder = i
-	# 		if(item[1] < initDiameters[currOrder-1] + initStdDev[currOrder-1]):
-	# 			segOrder[item[0]] = currOrder
-	# 			break
+	for item in sortedDiameters:
+		for i in range(currOrder,16):
+			currOrder = i
+			if(item[1] < initDiameters[currOrder-1] + initStdDev[currOrder-1]):
+				segOrder[item[0]] = currOrder
+				break
 	
+
+	# counter = 0
+	# currOrder = 1
 	# for seg in sortedDiameters:
-	# 	segOrder[seg[0]] = 7
-
-	counter = 0
-	currOrder = 1
-	for seg in sortedDiameters:
-		counter += 1
-		if counter < len(sortedDiameters)/15:
-			segOrder[seg[0]] = currOrder
-		else:
-			currOrder += 1
-			counter = 0
-			if currOrder > 15:
-				currOrder = 15
-			segOrder[seg[0]] = currOrder
+	# 	counter += 1
+	# 	if counter < len(sortedDiameters)/15:
+	# 		segOrder[seg[0]] = currOrder
+	# 	else:
+	# 		currOrder += 1
+	# 		counter = 0
+	# 		if currOrder > 15:
+	# 			currOrder = 15
+	# 		segOrder[seg[0]] = currOrder
 
 
-	print('Seg Order: ' + str(segOrder))
+	#print('Seg Order: ' + str(segOrder))
 	#print('Segment Diameters' + str(sortedDiameters))
 	#print('Avg Area Segment' + str(avgAreaSegment))	
 	#print('Previous Average Diameters ' + str(previousAverageDiameters))
@@ -139,23 +138,23 @@ def main():
 
 	while not finished:
 		# Recalculate the average diameters and standard deviation of diameters in each order
-		print('Seg Order: ' + str(segOrder))
+		#print('Seg Order: ' + str(segOrder))
 		currOrder = 1
 		currOrderSegments = []
 		counter = 0
 		iterationNumber += 1
 		iterations.append(iterationNumber)
-		print('Avg Diameters: ' + str(avgDiameters))
-		print('Std Devs: ' + str(stdDev))
+		#print('Avg Diameters: ' + str(avgDiameters))
+		#print('Std Devs: ' + str(stdDev))
 		for i in segOrder: #Iterate through all Huang Segments -> sorted from smallest diameter to largest
-			print('i: ' + str(i))
-			print('Seg Order: ' + str(segOrder.get(i)))
+			#print('i: ' + str(i))
+			#print('Seg Order: ' + str(segOrder.get(i)))
 			counter+=1
 			if(segOrder.get(i) == currOrder): #create np array of all diameters in current order
 				currOrderSegments.append(huangSegmentDiameters.get(i))
 			else:
 				npCurrOrderSegments = np.asarray(currOrderSegments)
-				print('npCurrOrderSegments: ' + str(npCurrOrderSegments))
+				#print('npCurrOrderSegments: ' + str(npCurrOrderSegments))
 				if not np.isnan(np.mean(npCurrOrderSegments)): #calculate average diameter for each order
 					avgDiameters[currOrder] = np.mean(npCurrOrderSegments)
 					diametersPerIteration[currOrder].append(np.mean(npCurrOrderSegments))
@@ -164,14 +163,14 @@ def main():
 				currOrderSegments = []
 				currOrder = segOrder.get(i)
 				currOrderSegments.append(huangSegmentDiameters.get(i))
-			print('Current Order Segments: ' + str(currOrderSegments))
+			#print('Current Order Segments: ' + str(currOrderSegments))
 
 		npCurrOrderSegments = np.asarray(currOrderSegments)
 		avgDiameters[currOrder] = np.mean(npCurrOrderSegments)
 		stdDev[currOrder] = np.std(npCurrOrderSegments)
 
-		print('Average Diameters ' + str(avgDiameters))
-		print('Standard Deviations ' + str(stdDev))
+		#print('Average Diameters ' + str(avgDiameters))
+		#print('Standard Deviations ' + str(stdDev))
 
 
 		# Repeat classification based on new averages and standard deviation of order diameter
@@ -237,16 +236,16 @@ def main():
 	currOrderSegments = []
 	counter = 0
 	avgLengths = defaultdict(list)
-	for iteration in diametersPerIteration:
-		matplotlib.pyplot.plot(iterations, diametersPerIteration[iteration])
-	matplotlib.pyplot.show()
+	# for iteration in diametersPerIteration:
+	# 	matplotlib.pyplot.plot(iterations, diametersPerIteration[iteration])
+	# matplotlib.pyplot.show()
 
 	# print('Num Segments: ' + str(len(segName)))
 	# print('Node Info: ' + str(len(nodeInfo)))
 
 	# print('Segment Orders: ' + str(segOrder))
-	# print('Average Diameter: ' + str(avgDiameters))
-	# print('Std Devs: ' + str(stdDev))
+	print('Average Diameter: ' + str(avgDiameters))
+	print('Std Devs: ' + str(stdDev))
 	# print('Huang Segment Lengths' + str(huangSegmentLengths))
 
 	#Calculate average length of vessels in each order
@@ -288,7 +287,8 @@ def main():
 	
 	#print('Average Lengths: ' + str(avgLengths))
 	#print('Num Segments in Order: ' + str(numSegmentsInOrder))
-	#print('Avg Diameters: ' + str(avgDiameters))
+	print('Avg Diameters: ' + str(avgDiameters))
+	print('Seg Order: ' + str(segOrder))
 
 	#Calculate number of Huang elements per Order
 	isFirst = True
@@ -347,12 +347,17 @@ def main():
 			if(numSegmentsInOrder.get(parentOrder) > 0):
 				connectivityMatrix[parentOrder][childOrder] /= elementsPerOrder.get(parentOrder, 1)
 	
-	# print(str(connectivityMatrix))
+	print(str(connectivityMatrix))
 	# print('Average Diameters: ' + str(avgDiameters))
 	# print('Std Devs: ' + str(stdDev))
 	# print('Average Lengths: ' + str(avgLengths))
 
 	#print('Sorted Diameters: ' + str(sortedDiameters))
+
+	with open('connectivity_matrix.csv', 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile, delimiter=' ', quotechar=',', quoting=csv.QUOTE_ALL)
+		for row in connectivityMatrix:
+			writer.writerow(row)
 
 
 
