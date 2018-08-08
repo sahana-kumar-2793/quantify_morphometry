@@ -19,6 +19,7 @@ from os import fdopen, remove
 from glob import glob
 import numpy as np
 import matplotlib.pyplot
+import csv
 
 # Define Global Variables
 nodeInfo = defaultdict(list) 		# { Node # : [X, Y, Z] }
@@ -33,8 +34,8 @@ stdDev = defaultdict(list)			# {Order : StDev Diameter}
 
 
 def main():	
-	pname = r'C:/Users/sahana/Documents/SimVascular_Stanford_Internship/Python_Project/Input_Files/' # path name to 1D input file
-	in_file = pname + 'Normal_15mo.in' # input file
+	pname = r'/home/marsdenlab/Documents/Normal_PA/' # path name to 1D input file
+	in_file = pname + 'Normal_9yr_male.in' # input file
 
 	# Get Relevant Segment, Node, and Joint Information from Input File
 	nodeInfo = nodes(in_file)
@@ -198,6 +199,7 @@ def main():
 			huangSegOrder[huangSegment] = 1
 	# print('SV Segment to Huang Segment: '+ str(svSegmentToHuangSegment))
 	# print('Joint Seg: ' + str(jointSeg))
+	# print('Child Segs: ' + str(huangSegOrder))
 	finished = False
 	counter = 0
 	while not finished:
@@ -227,6 +229,7 @@ def main():
 				# print(str(childHuangOrders))
 				if len(childHuangOrders) != 0:
 					currOrder = childHuangOrders[0]
+					# print('Curr Order: ' + str(currOrder))
 					same = True
 					if len(childHuangOrders) == 1:
 						huangSegOrder[parentSeg] = currOrder
@@ -238,11 +241,11 @@ def main():
 							if childHuangOrders[i] < currOrder:
 								same = False
 						if not same:
-							huangSegOrder[parentSeg] = currOrder + 1
-						else:
 							huangSegOrder[parentSeg] = currOrder
-			print(str(huangSegOrder))
-			if counter == 400:
+						else:
+							huangSegOrder[parentSeg] = currOrder + 1
+			# print(str(huangSegOrder))
+			if counter == 1000:
 				finished = True
 				print('Timed Out')
 
@@ -285,9 +288,7 @@ def main():
 	sortedSegOrder = sorted(huangSegOrder.items(), key=lambda x:x[1])
 	print('Sorted Seg Order: ' + str(sortedSegOrder))
 	#print('Iterations: ' + str(counter))
-	print('Avg Diameters: ' + str(avgDiameters))
-	print('Std Devs: ' + str(stdDev))
-
+	
 	# Initialize average diameters to initial diameter scheme
 	# for i in range(0,15):
 	# 	avgDiameters[i+1] = initDiameters[int(i)]
@@ -368,18 +369,21 @@ def main():
 				currOrderSegments.append(huangSegmentDiameters.get(segment[0]))
 			else: #if segment not in current order, calculate the average diameters/stdev of all diameters in current order
 				npCurrOrderSegments = np.asarray(currOrderSegments)
+				print(str(currOrder) + ': ' + str(npCurrOrderSegments))
 				if len(npCurrOrderSegments) >= 1: #ensures that array for current order is not empty
 					avgDiameters[currOrder] = np.mean(npCurrOrderSegments) #avg diameter
 					diametersPerIteration[currOrder].append(np.mean(npCurrOrderSegments))
 					stdDev[currOrder] = np.std(npCurrOrderSegments) #stdev diameter
-					print('NP Curr Order Segments: ' + str(npCurrOrderSegments))
+					#print('NP Curr Order Segments: ' + str(npCurrOrderSegments))
 				currOrderSegments = []
 				currOrder = huangSegOrder.get(segment[0]) #change current order to the order of the current segment that was different from previous
-				currOrderSegments.append(huangSegmentDiameters.get(i))
+				currOrderSegments.append(huangSegmentDiameters.get(segment[0]))
 
 
 		npCurrOrderSegments = np.asarray(currOrderSegments)
-		print(npCurrOrderSegments)
+		print(str(currOrder) + ': ' + str(npCurrOrderSegments))
+		print(str(sortedSegOrder))
+		print(str(sortedDiameters))
 		avgDiameters[currOrder] = np.mean(npCurrOrderSegments)
 		stdDev[currOrder] = np.std(npCurrOrderSegments)
 
@@ -494,7 +498,9 @@ def main():
 	
 	#print('Average Lengths: ' + str(avgLengths))
 	#print('Num Segments in Order: ' + str(numSegmentsInOrder))
-	#print('Avg Diameters: ' + str(avgDiameters))
+	print('Avg Diameters: ' + str(avgDiameters))
+	print('Std Devs: ' + str(stdDev))
+	print('Seg Order: ' + str(huangSegOrder))
 
 	#Calculate number of Huang elements per Order
 	isFirst = True
@@ -524,12 +530,12 @@ def main():
 			svSegOrder[svSegment] = huangSegOrder.get(huangSegment)
 
 	sortedDiameters = sorted(huangSegmentDiameters.items(), key=lambda x: x[1])
-	print('Sorted Diameters: ' + str(sortedDiameters))
+	# print('Sorted Diameters: ' + str(sortedDiameters))
 	sortedSegOrder = sorted(huangSegOrder.items(), key=lambda x:x[1])
-	print('Sorted Seg Order: ' + str(sortedSegOrder))
-	print('Iterations: ' + str(counter))
-	print('Avg Diameters: ' + str(avgDiameters))
-	print('Std Devs: ' + str(stdDev))
+	# print('Sorted Seg Order: ' + str(sortedSegOrder))
+	# print('Iterations: ' + str(counter))
+	# print('Avg Diameters: ' + str(avgDiameters))
+	# print('Std Devs: ' + str(stdDev))
 
 	#Create Connectivity Matrix
 	connectivityMatrix = np.zeros((maxOrder+2, maxOrder+2))
@@ -565,6 +571,11 @@ def main():
 	# print('Average Lengths: ' + str(avgLengths))
 
 	#print('Sorted Diameters: ' + str(sortedDiameters))
+
+	with open('connectivity_matrix.csv', 'w', newline='') as csvfile:
+ 		writer = csv.writer(csvfile, delimiter=' ', quotechar=',', quoting=csv.QUOTE_ALL)
+ 		for row in connectivityMatrix:
+ 			writer.writerow(row)
 
 
 
