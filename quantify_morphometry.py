@@ -34,8 +34,8 @@ stdDev = defaultdict(list)			# {Order : StDev Diameter}
 
 
 def main():	
-	pname = r'/home/marsdenlab/Documents/Normal_PA/' # path name to 1D input file
-	in_file = pname + 'Normal_9yr_male.in' # input file
+	pname = r'C:/Users/sahana/Documents/SimVascular_Stanford_Internship/Python_Project/Input_Files/' # path name to 1D input file
+	in_file = pname + 'Normal_15mo.in' # input file
 
 	# Get Relevant Segment, Node, and Joint Information from Input File
 	nodeInfo = nodes(in_file)
@@ -99,6 +99,8 @@ def main():
 	
 
 	huangSegOrder = defaultdict(lambda: 0)		# {Huang Seg # : Order}
+
+	print(str(segName))
 
 
 	# Classify each segment into a diameter-based order using an initial order classification
@@ -186,6 +188,7 @@ def main():
 	# 			else:
 	# 				finished = False
 
+	#Classify each segment into an initial order using the Strahler Ordering System
 	#print(str(jointSeg))
 	svSegmentToHuangSegment = defaultdict(int) #{SV Segment # : Huang Segment #}
 	for huangSegment in segmentsInHuangSegments:
@@ -364,7 +367,10 @@ def main():
 		iterationNumber += 1
 		iterations.append(iterationNumber)
 		sortedSegOrder = sorted(huangSegOrder.items(), key=lambda x:x[1])
+		orders = []
+		avgDiameters.clear()
 		for segment in sortedSegOrder: #Iterate through all Huang Segments -> sorted from smallest diameter to largest
+			orders.append(currOrder)
 			if(huangSegOrder.get(segment[0]) == currOrder): #append diameters in current to np array
 				currOrderSegments.append(huangSegmentDiameters.get(segment[0]))
 			else: #if segment not in current order, calculate the average diameters/stdev of all diameters in current order
@@ -377,7 +383,9 @@ def main():
 					#print('NP Curr Order Segments: ' + str(npCurrOrderSegments))
 				currOrderSegments = []
 				currOrder = huangSegOrder.get(segment[0]) #change current order to the order of the current segment that was different from previous
+				print('Segment: ' + str(segment[0]) + " order: " + str(segment[1]))
 				currOrderSegments.append(huangSegmentDiameters.get(segment[0]))
+
 
 
 		npCurrOrderSegments = np.asarray(currOrderSegments)
@@ -446,7 +454,7 @@ def main():
 	# currOrder = 1
 	# currOrderSegments = []
 	# counter = 0
-	# avgLengths = defaultdict(list)
+	avgLengths = defaultdict(float)
 	# for iteration in diametersPerIteration:
 	# 	matplotlib.pyplot.plot(iterations, diametersPerIteration[iteration])
 	# matplotlib.pyplot.show()
@@ -460,47 +468,43 @@ def main():
 	# print('Huang Segment Lengths' + str(huangSegmentLengths))
 
 	# #Calculate average length of vessels in each order
-	# isFirst = True
-	# length = 0
-	# currOrder = 1
-	# counter = 0
-	# for currSeg in huangSegOrder:
-	# 	if isFirst:
-	# 		currOrder = huangSegOrder.get(currSeg)
-	# 		isFirst = False
-	# 	if huangSegOrder.get(currSeg) == currOrder:
-	# 		length += huangSegmentLengths.get(currSeg)
-	# 		counter += 1
-	# 	else:
-	# 		avgLengths[currOrder] = length/counter
-	# 		length = 0
-	# 		counter = 0
-	# 		currOrder += 1
-	# 		length += huangSegmentLengths.get(currSeg)
-	# 		counter +=1
-	# avgLengths[currOrder] = length/counter
+	isFirst = True
+	length = 0
+	currOrder = 1
+	counter = 0
+	print(len(huangSegmentLengths))
+	print(len(huangSegOrder))
+	print("Huang Seg Lengths: " + str(huangSegmentLengths))
+	print('Sorted Seg Order: ' + str(sortedSegOrder))
+	sortedSegOrder = sorted(huangSegOrder.items(), key=lambda x:x[1])
+	for currSeg in sortedSegOrder:
+		if isFirst:
+			currOrder = currSeg[1]
+			isFirst = False
+		if currSeg[1] == currOrder:
+			length += huangSegmentLengths.get(currSeg[0])
+			counter += 1
+		else:
+			avgLengths[currOrder] = length/counter
+			length = 0
+			counter = 0
+			currOrder = currSeg[1]
+			length += huangSegmentLengths.get(currSeg[0])
+			counter +=1
+	avgLengths[currOrder] = length/counter
 
-	# numSegmentsInOrder = defaultdict(list)
-	# currOrder = 1
-	# numTimes = 0
-	# for elem in huangSegOrder:
-	# 	if huangSegOrder.get(elem) == currOrder:
-	# 		numTimes+=1
-	# 	else:
-	# 		numSegmentsInOrder[currOrder] = numTimes
-	# 		numTimes = 1
-	# 		currOrder +=1
-	#print(numSegmentsInOrder)
+
+	# print(numSegmentsInOrder)
 	# maxOrder = len(numSegmentsInOrder)
 
-	#print('Num Segments: ' + str(len(bifDiameter)))
+	# print('Num Segments: ' + str(len(bifDiameter)))
 
-	
-	#print('Average Lengths: ' + str(avgLengths))
+	# print('Sorted SegOrder: ' + str(sortedSegOrder))
+	print('Average Lengths: ' + str(avgLengths))
 	#print('Num Segments in Order: ' + str(numSegmentsInOrder))
 	print('Avg Diameters: ' + str(avgDiameters))
 	print('Std Devs: ' + str(stdDev))
-	print('Seg Order: ' + str(huangSegOrder))
+	# print('Seg Order: ' + str(huangSegOrder))
 
 	#Calculate number of Huang elements per Order
 	isFirst = True
@@ -565,7 +569,7 @@ def main():
 			if elementsPerOrder.get(parentOrder, 1) != 0:
 				connectivityMatrix[parentOrder][childOrder] /= elementsPerOrder.get(parentOrder, 1)
 	
-	print(str(connectivityMatrix))
+	# print(str(connectivityMatrix))
 	# print('Average Diameters: ' + str(avgDiameters))
 	# print('Std Devs: ' + str(stdDev))
 	# print('Average Lengths: ' + str(avgLengths))
