@@ -23,7 +23,7 @@ import csv
 
 # Define Global Variables
 nodeInfo = defaultdict(list) 		# { Node # : [X, Y, Z] }
-jointNode = {} 						# {Seg # : Joint Node}
+jointNode = {} 						# {Seg # : Node #}
 jointSeg = defaultdict(list) 		# {Inlet Seg # : [Outlet Seg #'s]}
 segName = defaultdict(list) 		# {Vessel Name : [Seg #'s]'}
 segNode = defaultdict(list) 		# {Seg # : [Node In, Node Out]}
@@ -58,6 +58,71 @@ def main():
 	#print('segmentsInHuangSegments: ' + str(segmentsInHuangSegments))
 
 	maxOrder = 15
+
+	print(str(jointSeg))
+
+	numSegments = 0
+	for inletSeg in segName:
+		print('Inlet')
+		if len(segName.get(inletSeg)) > 1:
+			numSegments += len(segName.get(inletSeg)) - 1
+
+	print('Num Segments: ' + str(numSegments))
+
+	isFirst = True
+	currSegNum = 0
+	inletID = 0
+	print('Joint Node: ' + str(jointNode))
+	print('Node Info: ' + str(nodeInfo))
+	nodeSeg = defaultdict(list) # {Vessel # : Node Seg #s}
+	nodeSegLength = defaultdict(list) # {Node Seg # : Node Seg Length}
+	nodeSegArea = defaultdict(float) # {Node Seg # : Node Seg Area}
+	nodeSegConnections = defaultdict(list) # {Inlet Node Seg # : Outlet Node Seg #'s'}
+	for vessel in segName: #Iterates through all vessels
+		isFirst = True
+		currInlet = []
+		currOutlet = []
+		vesNodeSeg = []
+		for inletSeg in segName.get(vessel): #Iterates through all SV Segments
+			if isFirst:
+				currInlet = nodeInfo.get(inletSeg)
+				currInletArea = segArea.get(inletSeg)[0]
+				isFirst = False
+				continue
+			if len(jointSeg.get(inletSeg)) > 1: 
+				for outletSeg in jointSeg.get(inletSeg):
+					vesNodeSeg.append(currSegNum)
+					currOutlet = nodeInfo.get(outletSeg)
+					print('Curr Inlet: ' + str(currInlet) + ' Curr Outlet: ' + str(currOutlet))
+					currOutletArea = segArea.get(outletSeg)[1]
+					nodeSegArea[currSegNum] = (float(currInletArea) + float(currOutletArea))/2 #Calculates average area in nodeSeg
+					nodeSegLength[currSegNum] = np.sqrt(np.power(currOutlet[0] - currInlet[0], 2) + np.power(currOutlet[1] - currInlet[1], 2) + np.power(currOutlet[2] - currInlet[2], 2)) #Calculates distance between 2 nodes - new length
+					# nodeSegConnections[inletID] = currSegNum
+					# inletID = currSegNum
+					currSegNum += 1
+					currInlet = currOutlet
+			currOutlet = nodeInfo.get(inletSeg)
+			print(inletSeg)
+			print('Node Info Curr Outlet: ' + str(nodeInfo.get(inletSeg)))
+			print(isFirst)
+		
+		print('Curr Inlet: ' + str(currInlet) + ' Curr Outlet: ' + str(currOutlet))
+		vesNodeSeg.append(currSegNum) # Append all nodeSegs in current vessel
+		currOutletArea = segArea.get(outletSeg)[1]
+		nodeSegArea[currSegNum] = (float(currInletArea) + float(currOutletArea))/2
+		nodeSegLength[currSegNum] = np.sqrt(np.power(currOutlet[0] - currInlet[0], 2) + np.power(currOutlet[1] - currInlet[1], 2) + np.power(currOutlet[2] - currInlet[2], 2))
+		# nodeSegConnections[inletID] = currSegNum
+		# inletID = currSegNum
+		currSegNum += 1 
+		nodeSeg[vessel] = vesNodeSeg
+
+	print('NodeSeg: ' + str(nodeSeg))
+	print('NodeSegLength: ' + str(nodeSegLength))
+	print('NodeSegArea: ' + str(nodeSegArea))
+	# print('NodeSegConnections: ' + str(nodeSegConnections))
+
+	nodeSegDiameter = {k : 2*np.sqrt(v/(np.pi)) for k, v in nodeSegArea.items()}
+	print('NodeSegDiameter: ' +  str(nodeSegDiameter))
 
 
 	#Initial list
@@ -204,8 +269,6 @@ def main():
 	
 	# print(segmentsInHuangSegments)
 	for huangSegment in huangSegmentDiameters:
-		print(huangSegment)
-		print(segmentsInHuangSegments)
 		svSegments = segmentsInHuangSegments.get(int(huangSegment))
 		if len(svSegments) > 0:
 			endSegment = svSegments[len(svSegments) - 1]
